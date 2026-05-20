@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, Sparkles, AlertCircle, AlertTriangle, ArrowLeft, Bot } from 'lucide-react';
+import { Sparkles, AlertCircle, AlertTriangle, ArrowLeft, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -33,6 +33,7 @@ import { createLogger } from '@/lib/logger';
 import { type GenerationSessionState, ALL_STEPS, getActiveSteps } from './types';
 import { StepVisualizer } from './components/visualizers';
 
+
 const log = createLogger('GenerationPreview');
 const OUTLINE_REVIEW_AUTO_CONTINUE_MS = 2500;
 
@@ -53,7 +54,6 @@ function GenerationPreviewContent() {
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isComplete] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [streamingOutlines, setStreamingOutlines] = useState<SceneOutline[] | null>(null);
   const [isOutlineStreaming, setIsOutlineStreaming] = useState(false);
@@ -77,6 +77,8 @@ function GenerationPreviewContent() {
   const agentRevealResolveRef = useRef<(() => void) | null>(null);
   const reviewOutlineEnabled = useSettingsStore((s) => s.reviewOutlineEnabled);
   const setReviewOutlineEnabled = useSettingsStore((s) => s.setReviewOutlineEnabled);
+
+
 
   // Compute active steps based on session state
   const activeSteps = getActiveSteps(session);
@@ -937,7 +939,7 @@ function GenerationPreviewContent() {
         }
       }
 
-      // Add scene to store and navigate
+      // Add scene to store
       store.addScene(data.scene);
       store.setCurrentSceneId(data.scene.id);
 
@@ -986,6 +988,7 @@ function GenerationPreviewContent() {
     sessionStorage.removeItem('generationSession');
     router.push('/');
   };
+
 
   // Triggered when the user clicks the streaming outline card mid-stream.
   // SSE keeps running; only the surface morph + intent flag change.
@@ -1132,302 +1135,260 @@ function GenerationPreviewContent() {
       ? activeSteps[Math.min(currentStepIndex, activeSteps.length - 1)]
       : ALL_STEPS[0];
 
-  if (isReviewingOutlines) {
-    const outlineStepIndex = Math.max(
-      0,
-      activeSteps.findIndex((step) => step.id === 'outline'),
-    );
-    // Editor source-of-truth: prefer the persisted final list; fall back to the
-    // live streaming buffer so the editor can render mid-stream after expansion.
-    const editorOutlines = session.sceneOutlines ?? streamingOutlines ?? [];
-
-    return (
-      <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-4 relative overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute top-4 left-4 z-20"
-        >
-          <Button variant="ghost" size="sm" onClick={goBackToHome} disabled={isConfirmingOutlines}>
-            <ArrowLeft className="size-4 mr-2" />
-            {t('generation.backToHome')}
-          </Button>
-        </motion.div>
-
-        <div className="z-10 w-full max-w-3xl pt-16 pb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <div className="flex justify-center gap-2">
-              {activeSteps.map((step, idx) => (
-                <div
-                  key={step.id}
-                  className={cn(
-                    'h-1.5 rounded-full transition-all duration-500',
-                    idx < outlineStepIndex
-                      ? 'w-1.5 bg-blue-500/30'
-                      : idx === outlineStepIndex
-                        ? 'w-8 bg-blue-500'
-                        : 'w-1.5 bg-muted/50',
-                  )}
-                />
-              ))}
-            </div>
-
-            <div className="max-w-2xl space-y-2 text-center mx-auto">
-              <h2 className="text-2xl font-bold tracking-tight">
-                {t('generation.reviewOutlineTitle')}
-              </h2>
-              <p className="text-muted-foreground text-sm md:text-base">
-                {isOutlineStreaming
-                  ? t('generation.reviewOutlineStreamingDesc')
-                  : t('generation.reviewOutlineDesc')}
-              </p>
-            </div>
-
-            {error && (
-              <div className="mx-auto max-w-2xl rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-300">
-                {error}
-              </div>
-            )}
-
-            <OutlinesEditor
-              outlines={editorOutlines}
-              onChange={handleOutlinesChange}
-              onConfirm={handleConfirmOutlines}
-              onBack={goBackToHome}
-              alwaysReview={reviewOutlineEnabled}
-              onAlwaysReviewChange={setReviewOutlineEnabled}
-              isLoading={isConfirmingOutlines}
-              isStreaming={isOutlineStreaming}
-              onCollapse={handleCollapseEditor}
-            />
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
+  // Outline data for both review and non-review paths
+  const editorOutlines = session.sceneOutlines ?? streamingOutlines ?? [];
 
   return (
-    <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center p-4 relative overflow-hidden text-center">
-      {/* Background Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div
-          className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '4s' }}
-        />
-        <div
-          className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '6s' }}
-        />
-      </div>
-
-      {/* Back button */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute top-4 left-4 z-20"
-      >
-        <Button variant="ghost" size="sm" onClick={goBackToHome}>
+    <div className="h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col overflow-hidden">
+      {/* Top bar */}
+      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200/40 dark:border-gray-700/30 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm z-20">
+        <Button variant="ghost" size="sm" onClick={goBackToHome} disabled={isConfirmingOutlines}>
           <ArrowLeft className="size-4 mr-2" />
           {t('generation.backToHome')}
         </Button>
-      </motion.div>
 
-      <div className="z-10 w-full max-w-lg space-y-8 flex flex-col items-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full"
-        >
-          <Card className="relative overflow-hidden border-muted/40 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl min-h-[400px] flex flex-col items-center justify-center p-8 md:p-12">
-            {/* Progress Dots */}
-            <div className="absolute top-6 left-0 right-0 flex justify-center gap-2">
-              {activeSteps.map((step, idx) => (
-                <div
-                  key={step.id}
-                  className={cn(
-                    'h-1.5 rounded-full transition-all duration-500',
-                    idx < currentStepIndex
-                      ? 'w-1.5 bg-blue-500/30'
-                      : idx === currentStepIndex
-                        ? 'w-8 bg-blue-500'
-                        : 'w-1.5 bg-muted/50',
-                  )}
+        {/* Progress Dots */}
+        <div className="flex items-center gap-2">
+          {activeSteps.map((step, idx) => (
+            <div
+              key={step.id}
+              className={cn(
+                'h-1.5 rounded-full transition-all duration-500',
+                idx < currentStepIndex
+                  ? 'w-1.5 bg-blue-500/30'
+                  : idx === currentStepIndex
+                    ? 'w-8 bg-blue-500'
+                    : 'w-1.5 bg-muted/50',
+              )}
+            />
+          ))}
+        </div>
+
+        <div className="w-24" />
+      </div>
+
+      {/* Content area */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+            {isReviewingOutlines ? (
+              /* Outline review editor */
+              <div className="p-4 space-y-4">
+                <div className="space-y-2">
+                  <h2 className="text-lg font-bold tracking-tight">
+                    {t('generation.reviewOutlineTitle')}
+                  </h2>
+                  <p className="text-muted-foreground text-sm">
+                    {isOutlineStreaming
+                      ? t('generation.reviewOutlineStreamingDesc')
+                      : t('generation.reviewOutlineDesc')}
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-300">
+                    {error}
+                  </div>
+                )}
+
+                <OutlinesEditor
+                  outlines={editorOutlines}
+                  onChange={handleOutlinesChange}
+                  onConfirm={handleConfirmOutlines}
+                  onBack={goBackToHome}
+                  alwaysReview={reviewOutlineEnabled}
+                  onAlwaysReviewChange={setReviewOutlineEnabled}
+                  isLoading={isConfirmingOutlines}
+                  isStreaming={isOutlineStreaming}
+                  onCollapse={handleCollapseEditor}
                 />
-              ))}
-            </div>
-
-            {/* Central Content */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full space-y-8 mt-4">
-              {/* Icon / Visualizer Container */}
-              <div className="relative size-48 flex items-center justify-center">
-                <AnimatePresence mode="popLayout">
-                  {error ? (
-                    <motion.div
-                      key="error"
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="size-32 rounded-full bg-red-500/10 flex items-center justify-center border-2 border-red-500/20"
-                    >
-                      <AlertCircle className="size-16 text-red-500" />
-                    </motion.div>
-                  ) : isComplete ? (
-                    <motion.div
-                      key="complete"
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="size-32 rounded-full bg-green-500/10 flex items-center justify-center border-2 border-green-500/20"
-                    >
-                      <CheckCircle2 className="size-16 text-green-500" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key={activeStep.id}
-                      initial={{ scale: 0.8, opacity: 0, filter: 'blur(10px)' }}
-                      animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-                      exit={{ scale: 1.2, opacity: 0, filter: 'blur(10px)' }}
-                      transition={{ duration: 0.4 }}
-                      className="absolute inset-0 flex items-center justify-center"
-                    >
-                      <StepVisualizer
-                        stepId={activeStep.id}
-                        outlines={session.sceneOutlines ?? streamingOutlines}
-                        webSearchSources={webSearchSources}
-                        onExpandOutline={
-                          activeStep.id === 'outline' ? handleExpandStreamingOutline : undefined
-                        }
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
+            ) : (
+              /* Generation progress view */
+              <div className="p-4 space-y-4">
+                {/* Status area — collapsed to a banner when ready, full view when generating */}
+                {/* Step visualizer + status */}
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="relative min-h-[220px] w-full flex items-center justify-center">
+                    <AnimatePresence mode="popLayout">
+                      {error ? (
+                        <motion.div
+                          key="error"
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="size-24 rounded-full bg-red-500/10 flex items-center justify-center border-2 border-red-500/20"
+                        >
+                          <AlertCircle className="size-12 text-red-500" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key={activeStep.id}
+                          initial={{ scale: 0.8, opacity: 0, filter: 'blur(10px)' }}
+                          animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+                          exit={{ scale: 1.2, opacity: 0, filter: 'blur(10px)' }}
+                          transition={{ duration: 0.4 }}
+                        >
+                          <StepVisualizer
+                            stepId={activeStep.id}
+                            outlines={session.sceneOutlines ?? streamingOutlines}
+                            webSearchSources={webSearchSources}
+                            onExpandOutline={
+                              activeStep.id === 'outline' ? handleExpandStreamingOutline : undefined
+                            }
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
-              {/* Text Content */}
-              <div className="space-y-3 max-w-sm mx-auto">
-                <AnimatePresence mode="wait">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={error ? 'error' : activeStep.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-1 text-center"
+                    >
+                      <h2 className="text-xl font-bold tracking-tight">
+                        {error ? t('generation.generationFailed') : t(activeStep.title)}
+                      </h2>
+                      <p className="text-muted-foreground text-sm">
+                        {error ? error : statusMessage || t(activeStep.description)}
+                      </p>
+                    </motion.div>
+                  </AnimatePresence>
+
+                  <AnimatePresence>
+                    {truncationWarnings.length > 0 && !error && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        className="flex justify-center"
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <motion.button
+                              type="button"
+                              animate={{
+                                boxShadow: [
+                                  '0 0 0 0 rgba(251, 191, 36, 0), 0 0 0 0 rgba(251, 191, 36, 0)',
+                                  '0 0 16px 4px rgba(251, 191, 36, 0.12), 0 0 4px 1px rgba(251, 191, 36, 0.08)',
+                                  '0 0 0 0 rgba(251, 191, 36, 0), 0 0 0 0 rgba(251, 191, 36, 0)',
+                                ],
+                              }}
+                              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                              className="relative size-7 rounded-full flex items-center justify-center cursor-default
+                                         bg-gradient-to-br from-amber-400/15 to-orange-400/10
+                                         border border-amber-400/25 hover:border-amber-400/40
+                                         hover:from-amber-400/20 hover:to-orange-400/15
+                                         transition-colors duration-300
+                                         focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
+                            >
+                              <AlertTriangle
+                                className="size-3.5 text-amber-500 dark:text-amber-400"
+                                strokeWidth={2.5}
+                              />
+                            </motion.button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" sideOffset={6}>
+                            <div className="space-y-1 py-0.5">
+                              {truncationWarnings.map((w, i) => (
+                                <p key={i} className="text-xs leading-relaxed">
+                                  {w}
+                                </p>
+                              ))}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Outline list */}
+                {editorOutlines.length > 0 && (
                   <motion.div
-                    key={error ? 'error' : isComplete ? 'done' : activeStep.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
                     className="space-y-2"
                   >
-                    <h2 className="text-2xl font-bold tracking-tight">
-                      {error
-                        ? t('generation.generationFailed')
-                        : isComplete
-                          ? t('generation.generationComplete')
-                          : t(activeStep.title)}
-                    </h2>
-                    <p className="text-muted-foreground text-base">
-                      {error
-                        ? error
-                        : isComplete
-                          ? t('generation.classroomReady')
-                          : statusMessage || t(activeStep.description)}
-                    </p>
-                  </motion.div>
-                </AnimatePresence>
-
-                {/* Truncation warning indicator */}
-                <AnimatePresence>
-                  {truncationWarnings.length > 0 && !error && !isComplete && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0 }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 500,
-                        damping: 30,
-                      }}
-                      className="flex justify-center"
-                    >
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.button
-                            type="button"
-                            animate={{
-                              boxShadow: [
-                                '0 0 0 0 rgba(251, 191, 36, 0), 0 0 0 0 rgba(251, 191, 36, 0)',
-                                '0 0 16px 4px rgba(251, 191, 36, 0.12), 0 0 4px 1px rgba(251, 191, 36, 0.08)',
-                                '0 0 0 0 rgba(251, 191, 36, 0), 0 0 0 0 rgba(251, 191, 36, 0)',
-                              ],
-                            }}
-                            transition={{
-                              duration: 3,
-                              repeat: Infinity,
-                              ease: 'easeInOut',
-                            }}
-                            className="relative size-7 rounded-full flex items-center justify-center cursor-default
-                                       bg-gradient-to-br from-amber-400/15 to-orange-400/10
-                                       border border-amber-400/25 hover:border-amber-400/40
-                                       hover:from-amber-400/20 hover:to-orange-400/15
-                                       transition-colors duration-300
-                                       focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
-                          >
-                            <AlertTriangle
-                              className="size-3.5 text-amber-500 dark:text-amber-400"
-                              strokeWidth={2.5}
-                            />
-                          </motion.button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" sideOffset={6}>
-                          <div className="space-y-1 py-0.5">
-                            {truncationWarnings.map((w, i) => (
-                              <p key={i} className="text-xs leading-relaxed">
-                                {w}
-                              </p>
-                            ))}
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">
+                      {t('generation.courseOutline') || '课程大纲'}
+                    </h3>
+                    <div className="space-y-1.5">
+                      {editorOutlines.map((outline, idx) => (
+                        <motion.div
+                          key={outline.id || idx}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                          className="flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors bg-white/60 dark:bg-slate-800/40 border border-gray-100 dark:border-gray-700/30"
+                        >
+                          <div className="size-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 bg-muted text-muted-foreground">
+                            {idx + 1}
                           </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Footer Action */}
-        <div className="h-16 flex items-center justify-center w-full">
-          <AnimatePresence>
-            {error ? (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-xs"
-              >
-                <Button size="lg" variant="outline" className="w-full h-12" onClick={goBackToHome}>
-                  {t('generation.goBackAndRetry')}
-                </Button>
-              </motion.div>
-            ) : isOutlineReady ? null : !isComplete ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center gap-3 text-sm text-muted-foreground/50 font-medium uppercase tracking-widest"
-              >
-                <Sparkles className="size-3 animate-pulse" />
-                {t('generation.aiWorking')}
-                {generatedAgents.length > 0 && !showAgentReveal && (
-                  <button
-                    onClick={() => setShowAgentReveal(true)}
-                    className="ml-2 flex items-center gap-1.5 rounded-full border border-purple-300/30 bg-purple-500/10 px-3 py-1 text-xs font-medium normal-case tracking-normal text-purple-400 transition-colors hover:bg-purple-500/20 hover:text-purple-300"
-                  >
-                    <Bot className="size-3" />
-                    {t('generation.viewAgents')}
-                  </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{outline.title}</p>
+                            {outline.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                                {outline.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={cn(
+                                'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                                outline.type === 'interactive'
+                                  ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                                  : outline.type === 'quiz'
+                                    ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                                    : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+                              )}>
+                                {outline.type === 'interactive' ? '交互' : outline.type === 'quiz' ? '测验' : '幻灯片'}
+                              </span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
                 )}
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </div>
+
+                {/* Footer actions */}
+                <div className="flex items-center justify-center pt-2">
+                  <AnimatePresence>
+                    {error ? (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="w-full max-w-xs"
+                      >
+                        <Button size="lg" variant="outline" className="w-full h-12" onClick={goBackToHome}>
+                          {t('generation.goBackAndRetry')}
+                        </Button>
+                      </motion.div>
+                    ) : isOutlineReady ? null : (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex items-center gap-3 text-sm text-muted-foreground/50 font-medium uppercase tracking-widest"
+                      >
+                        <Sparkles className="size-3 animate-pulse" />
+                        {t('generation.aiWorking')}
+                        {generatedAgents.length > 0 && !showAgentReveal && (
+                          <button
+                            onClick={() => setShowAgentReveal(true)}
+                            className="ml-2 flex items-center gap-1.5 rounded-full border border-purple-300/30 bg-purple-500/10 px-3 py-1 text-xs font-medium normal-case tracking-normal text-purple-400 transition-colors hover:bg-purple-500/20 hover:text-purple-300"
+                          >
+                            <Bot className="size-3" />
+                            {t('generation.viewAgents')}
+                          </button>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
       </div>
 
       {/* Agent Reveal Modal */}

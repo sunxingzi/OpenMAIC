@@ -47,6 +47,11 @@
     "classroomZip": "Экспорт ZIP класса",
     "classroomZipDesc": "Структура курса + медиафайлы"
   },
+  "interactive": {
+    "downloadHtml": "Скачать как HTML",
+    "explanation": "Объяснение концепции",
+    "hideExplanation": "Скрыть объяснение"
+  },
   "import": {
     "classroom": "Импорт класса",
     "parsing": "Анализ ZIP...",

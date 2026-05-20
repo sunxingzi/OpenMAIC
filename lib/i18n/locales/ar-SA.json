@@ -47,6 +47,11 @@
     "exportSuccess": "تم التصدير بنجاح",
     "exportFailed": "فشل التصدير"
   },
+  "interactive": {
+    "downloadHtml": "تحميل كملف HTML",
+    "explanation": "شرح المفهوم",
+    "hideExplanation": "إخفاء الشرح"
+  },
   "import": {
     "classroom": "استيراد فصل",
     "parsing": "جارٍ تحليل ملف ZIP...",

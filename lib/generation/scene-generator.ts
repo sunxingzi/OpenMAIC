@@ -218,7 +218,19 @@ function convertInteractiveConfigToWidget(outline: SceneOutline): SceneOutline {
 function inferWidgetType(subject: string, concept: string, designIdea: string): WidgetType {
   const text = (subject + ' ' + concept + ' ' + designIdea).toLowerCase();
 
-  // Rule-based inference
+  // 3D visualization — concepts that benefit from spatial/3D representation
+  // Must be checked BEFORE generic physics/chemistry to capture field/spatial topics
+  if (
+    /magnetic|magnet|electromagnet|磁场|磁力|磁感|电磁|安培|法拉第|洛伦兹|electric.?field|电场|场强|力场|引力场|gravitational.?field|field.?line|磁感线|电场线|力线/.test(text) ||
+    /3d|三维|空间|立体|spatial|vector.?field|矢量场|flux|磁通|环形电流|螺线管|solenoid|coil|线圈/.test(text) ||
+    /biology|anatomy|cell|molecular|生物|细胞|分子|solar|planet|skeleton|organ|天体|星球|轨道|orbit/.test(text) ||
+    /crystal|晶体|lattice|晶格|dna|蛋白质|protein|原子|atom|electron.?cloud|电子云/.test(text) ||
+    /wave.?3d|electromagnetic.?wave|电磁波|光波|声波传播|interference.?3d|干涉|衍射/.test(text)
+  ) {
+    return 'visualization3d';
+  }
+
+  // 2D simulation — physics/chemistry concepts better suited to 2D canvas
   if (
     /physics|chemistry|力学|化学|运动|反应|force|motion|equilibrium|wave|电路|circuit/.test(text)
   ) {
@@ -229,11 +241,6 @@ function inferWidgetType(subject: string, concept: string, designIdea: string): 
   }
   if (/process|workflow|步骤|流程|逻辑|step|flow|系统|system/.test(text)) {
     return 'diagram';
-  }
-  if (
-    /biology|anatomy|cell|molecular|生物|细胞|分子|3d|三维|solar|planet|skeleton|organ/.test(text)
-  ) {
-    return 'visualization3d';
   }
   if (/game|quiz|practice|练习|游戏|puzzle|match|challenge|挑战/.test(text)) {
     return 'game';
@@ -1132,14 +1139,17 @@ async function generateWidgetContent(
   // Extract widget config from HTML if present
   const widgetConfig = extractWidgetConfig(html);
 
-  // Generate teacher actions
-  const teacherActions = await generateWidgetTeacherActions(
-    widgetType,
-    outline,
-    widgetConfig,
-    aiCall,
-    languageDirective,
-  );
+  // Generate teacher actions and explanation in parallel
+  const [teacherActions, explanation] = await Promise.all([
+    generateWidgetTeacherActions(
+      widgetType,
+      outline,
+      widgetConfig,
+      aiCall,
+      languageDirective,
+    ),
+    generateWidgetExplanation(outline, aiCall, languageDirective),
+  ]);
   log.info(
     `[Ultra Mode] Generated ${teacherActions?.length || 0} teacher actions for "${outline.title}" (${widgetType})`,
   );
@@ -1148,12 +1158,16 @@ async function generateWidgetContent(
       `[Ultra Mode] Teacher actions for "${outline.title}": ${JSON.stringify(teacherActions, null, 2)}`,
     );
   }
+  if (explanation) {
+    log.info(`Generated explanation (${explanation.length} chars) for "${outline.title}"`);
+  }
 
   return {
     html: postProcessInteractiveHtml(html),
     widgetType,
     widgetConfig,
     teacherActions,
+    explanation,
   };
 }
 
@@ -1198,6 +1212,34 @@ async function generateWidgetTeacherActions(
     const parsed = parseJsonResponse<{ actions: TeacherAction[] }>(response);
     return parsed?.actions;
   } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Generate a concise markdown explanation for split-pane display alongside the widget
+ */
+async function generateWidgetExplanation(
+  outline: SceneOutline,
+  aiCall: AICallFn,
+  languageDirective?: string,
+): Promise<string | undefined> {
+  const prompts = buildPrompt(PROMPT_IDS.INTERACTIVE_EXPLANATION, {
+    conceptName: outline.title,
+    conceptOverview: outline.description,
+    keyPoints: (outline.keyPoints || []).join('\n'),
+    languageDirective: languageDirective || '',
+  });
+
+  if (!prompts) return undefined;
+
+  try {
+    const response = await aiCall(prompts.system, prompts.user);
+    const trimmed = response.trim();
+    if (!trimmed || trimmed.length < 20) return undefined;
+    return trimmed;
+  } catch {
+    log.warn(`Failed to generate explanation for: ${outline.title}`);
     return undefined;
   }
 }
@@ -1712,6 +1754,7 @@ export function createSceneWithActions(
         widgetType: content.widgetType,
         widgetConfig: content.widgetConfig,
         teacherActions: content.teacherActions,
+        explanation: content.explanation,
       },
       actions,
     });

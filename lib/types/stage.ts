@@ -142,6 +142,8 @@ export interface InteractiveContent {
   widgetType?: WidgetType;
   widgetConfig?: WidgetConfig;
   teacherActions?: TeacherAction[];
+  // Markdown explanation for split-pane display
+  explanation?: string;
 }
 
 /**

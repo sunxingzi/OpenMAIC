@@ -47,6 +47,11 @@
     "classroomZip": "教室ZIPをエクスポート",
     "classroomZipDesc": "コース構造 + メディアファイル"
   },
+  "interactive": {
+    "downloadHtml": "HTMLとしてダウンロード",
+    "explanation": "概念解説",
+    "hideExplanation": "解説を非表示"
+  },
   "import": {
     "classroom": "教室をインポート",
     "parsing": "ZIP を解析中...",

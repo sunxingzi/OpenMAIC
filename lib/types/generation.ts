@@ -179,6 +179,7 @@ export interface GeneratedInteractiveContent {
   widgetType?: WidgetType;
   widgetConfig?: WidgetConfig;
   teacherActions?: TeacherAction[];
+  explanation?: string;
 }
 
 // ==================== Legacy Types (for compatibility) ====================

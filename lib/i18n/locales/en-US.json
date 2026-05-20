@@ -47,6 +47,11 @@
     "classroomZip": "Export Classroom ZIP",
     "classroomZipDesc": "Course structure + media files"
   },
+  "interactive": {
+    "downloadHtml": "Download as HTML",
+    "explanation": "Concept Explanation",
+    "hideExplanation": "Hide Explanation"
+  },
   "import": {
     "classroom": "Import Classroom",
     "parsing": "Parsing ZIP...",

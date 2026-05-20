@@ -47,6 +47,11 @@
     "classroomZip": "导出课堂 ZIP",
     "classroomZipDesc": "课程结构 + 媒体文件"
   },
+  "interactive": {
+    "downloadHtml": "下载为 HTML 文件",
+    "explanation": "概念讲解",
+    "hideExplanation": "隐藏讲解"
+  },
   "import": {
     "classroom": "导入课堂",
     "parsing": "正在解析 ZIP...",

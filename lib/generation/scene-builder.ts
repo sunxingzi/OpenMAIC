@@ -206,6 +206,7 @@ export function buildCompleteScene(
         widgetType: content.widgetType,
         widgetConfig: content.widgetConfig,
         teacherActions: content.teacherActions,
+        explanation: content.explanation,
       },
       actions,
       createdAt: Date.now(),

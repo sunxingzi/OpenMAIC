@@ -34,20 +34,16 @@ Your output must be a complete HTML document with:
 Your HTML MUST include this message listener to respond to teacher actions:
 
 ```javascript
-// Add this script at the end of your HTML
 window.addEventListener('message', function(event) {
   const { type, target, state, content } = event.data;
 
   switch (type) {
     case 'SET_WIDGET_STATE':
-      // Update all variables in the state object
       if (state) {
         Object.entries(state).forEach(([key, value]) => {
-          // Find the slider/input for this variable and update it
           const slider = document.getElementById(key + '-slider') || document.querySelector('[data-var="' + key + '"]');
           if (slider) {
             slider.value = value;
-            // Trigger change event to update simulation
             slider.dispatchEvent(new Event('input', { bubbles: true }));
           }
         });
@@ -55,13 +51,11 @@ window.addEventListener('message', function(event) {
       break;
 
     case 'HIGHLIGHT_ELEMENT':
-      // Highlight the target element with a pulsing border
       const highlightEl = document.querySelector(target);
       if (highlightEl) {
         highlightEl.style.outline = '3px solid rgba(139, 92, 246, 0.8)';
         highlightEl.style.outlineOffset = '4px';
         highlightEl.style.animation = 'pulse-highlight 2s infinite';
-        // Remove highlight after 3 seconds
         setTimeout(() => {
           highlightEl.style.outline = '';
           highlightEl.style.animation = '';
@@ -70,7 +64,6 @@ window.addEventListener('message', function(event) {
       break;
 
     case 'ANNOTATE_ELEMENT':
-      // Show an annotation tooltip near the target element
       const annotateEl = document.querySelector(target);
       if (annotateEl && content) {
         const rect = annotateEl.getBoundingClientRect();
@@ -84,7 +77,6 @@ window.addEventListener('message', function(event) {
       break;
 
     case 'REVEAL_ELEMENT':
-      // Reveal a hidden element
       const revealEl = document.querySelector(target);
       if (revealEl) {
         revealEl.style.display = '';
@@ -94,7 +86,6 @@ window.addEventListener('message', function(event) {
   }
 });
 
-// Add this CSS for animations
 const style = document.createElement('style');
 style.textContent = '@keyframes pulse-highlight { 0%, 100% { outline-color: rgba(139, 92, 246, 0.8); } 50% { outline-color: rgba(139, 92, 246, 0.4); } } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }';
 document.head.appendChild(style);
@@ -107,37 +98,243 @@ To make highlight/annotation work, use consistent IDs for controls:
 - Buttons: `id="{action}-btn"` (e.g., `id="start-btn"`, `id="reset-btn"`)
 - Displays: `id="{variable_name}-display"` (e.g., `id="acceleration-display"`)
 
+## TARGET LAYOUT: Two-Column + Tabs (MANDATORY)
+
+You MUST use the following premium layout pattern. This produces polished, professional results.
+
+### Layout Structure
+
+```
++-------------------------------------------------------------------+
+|  [Hint Banner: colored background, explains the experiment goal]  |
++-------------------------------------------------------------------+
+|  [Tab 1: Experiment A]  [Tab 2: Experiment B]  ...                |
++-------------------------------------------------------------------+
+|                          |                                        |
+|   Canvas / SVG           |   Parameter Control Panel              |
+|   Visualization          |                                        |
+|   (interactive area)     |   Slider Label         Value + Unit    |
+|                          |   ──────────●──────── [102 N]          |
+|                          |                                        |
+|                          |   Slider Label         Value + Unit    |
+|                          |   ────●──────────── [140°]             |
+|                          |                                        |
+|                          |   ┌─────────────────────────────┐      |
+|                          |   │ Computed Result:             │      |
+|                          |   │ 合力大小: 62.1 N             │      |
+|                          |   │ 方向: 95.8°                  │      |
+|                          |   └─────────────────────────────┘      |
+|                          |                                        |
+|                          |   [ 重置 ]        [ 暂停演示 ]         |
++-------------------------------------------------------------------+
+```
+
+### Key Layout Requirements
+
+1. **Hint Banner** (top, full width): A colored banner (e.g. soft blue/purple background) with 1-2 sentences explaining the experiment goal and what to observe.
+
+2. **Tab Navigation** (below banner): When the concept has multiple sub-experiments or aspects, provide tabs to switch between them. Each tab resets the visualization for that sub-experiment.
+
+3. **Left: Visualization Area** (~60% width): Canvas or SVG rendering of the simulation. Objects, vectors, forces, etc. rendered here. Must be responsive and fill available space.
+
+4. **Right: Parameter Control Panel** (~40% width): 
+   - Each slider has a clear label on the left and current value + unit on the right
+   - Sliders use styled range inputs with visible thumb and track
+   - Below sliders: a **Computed Results** box with a distinct background showing calculated values in real-time
+   - At the bottom: action buttons (Reset, Start/Pause)
+
+5. **Responsive**: On mobile (<768px), stack vertically: visualization on top, controls below.
+
+### CSS Design Tokens
+
+Use these consistent styling values:
+
+```css
+:root {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --primary-bg: #eef2ff;
+  --surface: #ffffff;
+  --surface-alt: #f8fafc;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --accent: #f59e0b;
+  --success: #10b981;
+  --danger: #ef4444;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+```
+
+### Slider Styling (MANDATORY)
+
+Style range inputs for a polished, modern look:
+
+```css
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(99,102,241,0.3);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+}
+```
+
+### Computed Results Box
+
+Display calculated values in a visually distinct box:
+
+```css
+.results-box {
+  background: var(--primary-bg);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 16px;
+}
+.results-box .result-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.results-box .result-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  color: var(--primary);
+}
+```
+
+## Reference HTML Template
+
+Follow this structure closely. Adapt the content to the specific concept:
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Simulation</title>
+  <style>
+    /* CSS variables, base styles, layout, slider styles, results box styles */
+    /* ... (use the design tokens above) ... */
+    
+    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--surface-alt); color: var(--text); }
+    
+    .hint-banner { background: var(--primary-bg); border-bottom: 1px solid rgba(99,102,241,0.15); padding: 12px 20px; font-size: 14px; color: var(--primary); }
+    
+    .tabs { display:flex; gap:0; border-bottom: 2px solid var(--border); padding: 0 20px; background: var(--surface); }
+    .tab { padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab:hover:not(.active) { color: var(--text); }
+    
+    .main-layout { display: flex; height: calc(100vh - 90px); }
+    .viz-area { flex: 3; position: relative; background: var(--surface); border-right: 1px solid var(--border); }
+    .viz-area canvas, .viz-area svg { width:100%; height:100%; display:block; }
+    
+    .control-panel { flex: 2; padding: 20px; overflow-y: auto; background: var(--surface); }
+    .control-panel h3 { font-size: 15px; font-weight: 600; margin: 0 0 16px; color: var(--text); }
+    
+    .slider-group { margin-bottom: 16px; }
+    .slider-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px; }
+    .slider-label { font-size: 13px; color: var(--text-muted); }
+    .slider-value { font-size: 14px; font-weight: 600; font-family: monospace; color: var(--primary); min-width: 60px; text-align: right; }
+    
+    .btn-group { display:flex; gap:8px; margin-top: 20px; }
+    .btn { flex:1; padding: 10px 16px; border-radius: 8px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-outline { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--surface-alt); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { opacity: 0.9; }
+    
+    @media (max-width: 768px) {
+      .main-layout { flex-direction: column; height: auto; }
+      .viz-area { min-height: 300px; border-right: none; border-bottom: 1px solid var(--border); }
+      .control-panel { max-height: 50vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hint-banner">
+    <strong>原理提示：</strong> 改变参数观察变化规律...
+  </div>
+  
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(0)">实验一</div>
+    <div class="tab" onclick="switchTab(1)">实验二</div>
+  </div>
+  
+  <div class="main-layout">
+    <div class="viz-area">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <h3>参数调节</h3>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">参数名称</span>
+          <span class="slider-value" id="param1-display">50</span>
+        </div>
+        <input type="range" id="param1-slider" min="0" max="100" value="50">
+      </div>
+      <!-- More sliders ... -->
+      
+      <div class="results-box">
+        <div class="result-label">计算结果：</div>
+        <div class="result-value" id="result-display">—</div>
+      </div>
+      
+      <div class="btn-group">
+        <button class="btn btn-outline" id="reset-btn" onclick="resetSimulation()">重置</button>
+        <button class="btn btn-primary" id="start-btn" onclick="toggleSimulation()">开始演示</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" id="widget-config">
+    { "type": "simulation", "concept": "...", "description": "...", "variables": [...] }
+  </script>
+  
+  <script>
+    // Simulation logic, drawing, event listeners, postMessage handler...
+  </script>
+</body>
+</html>
+```
+
 ## CRITICAL Design Requirements
 
 ### 1. Mobile Layout - NO OVERLAP
 - **Control panel MUST NOT overlap with canvas on mobile**
-- Use one of these mobile-safe layouts:
-  - **Stacked layout**: Control panel on top, canvas below (with proper spacing)
-  - **Bottom sheet**: Control panel slides up from bottom on mobile
-  - **Side drawer**: Collapsible panel that doesn't block canvas
-- Test viewport widths: 320px, 375px, 414px, 768px
+- Use the flex column layout on mobile (< 768px): visualization on top, controls below
 - Use `min-height` for canvas to ensure it's visible on mobile
-- Control panel should be collapsible on mobile if large
-
-Example mobile-safe layout:
-```html
-<body class="flex flex-col min-h-screen md:flex-row">
-  <!-- Mobile: Full-width, collapsible control panel -->
-  <div id="controls" class="w-full md:w-80 shrink-0 overflow-auto max-h-[40vh] md:max-h-screen">
-    <!-- Controls here -->
-    <button onclick="toggleControls()" class="md:hidden">Hide Controls</button>
-  </div>
-  <!-- Canvas area gets remaining space -->
-  <div class="flex-1 min-h-[300px] relative">
-    <canvas id="canvas"></canvas>
-  </div>
-</body>
-```
+- Control panel should be scrollable on mobile
 
 ### 2. Reset Button - MUST WORK CORRECTLY
 - **Reset button MUST return simulation to initial state**
 - Common bug: Button changes text to "重新开始" but clicking it doesn't reset
-- Solution: Use a separate reset function, or check state properly
 
 Correct implementation:
 ```javascript
@@ -145,7 +342,6 @@ let state = { running: false, ended: false, posX: 50, velocity: 0 };
 
 function handleMainButton() {
   if (state.ended) {
-    // If simulation ended, reset first
     resetSimulation();
   } else if (state.running) {
     pauseSimulation();
@@ -157,13 +353,12 @@ function handleMainButton() {
 function resetSimulation() {
   state.running = false;
   state.ended = false;
-  state.posX = 50;  // Reset to initial position!
-  state.velocity = 0;  // Reset velocity!
+  state.posX = 50;
+  state.velocity = 0;
   updateButton('启动');
   draw();
 }
 
-// When simulation hits boundary/ends:
 function onSimulationEnd() {
   state.running = false;
   state.ended = true;
@@ -179,89 +374,45 @@ function updateButton(text) {
 - Use clear state variables: `running`, `paused`, `ended`
 - Button text should reflect what will happen when clicked:
   - "启动" / "开始" → Start simulation
-  - "暂停" / "暂停" → Pause running simulation
-  - "继续" / "继续" → Resume paused simulation
+  - "暂停" → Pause running simulation
+  - "继续" → Resume paused simulation
   - "重新开始" / "重试" → Reset and start fresh (when ended)
-- One button should NOT do different things based on text alone
 
 ### 4. Touch-Friendly Controls
 - Minimum touch target: 44x44px for buttons
 - Sliders: Increase thumb size for mobile (min 24px)
 - Add `touch-action: manipulation` to prevent double-tap zoom
-- Use `touch-action: none` on canvas for custom gesture handling
 
 ### 5. Canvas Sizing
 - Use `ResizeObserver` or window resize event
-- Canvas should fill available space but respect `max-height`
+- Canvas should fill available space
 - Don't use fixed pixel dimensions
-- Account for control panel height on mobile
 
-### 6. Visual Feedback
-- Clear indication when simulation starts/pauses/ends
-- Show current state in UI (running indicator, paused icon)
-- Highlight end boundary or target
-- Show success/failure message when simulation ends
-- Animate the "重新开始" button appearance
+### 6. Visible Animation (CRITICAL)
 
-### 7. Visible Animation (CRITICAL)
+**When the user clicks "启动", there MUST be OBVIOUS visual animation.**
 
-**When the user clicks "启动" (Start), there MUST be OBVIOUS visual animation.**
+- **Moving objects**: Objects should visibly move, rotate, or change
+- **Clear motion**: Animation should be immediately noticeable
+- **Multiple visual cues**: Combine motion with data updates, color changes, particle effects
+- Use `requestAnimationFrame` for smooth animation
 
-#### Animation Requirements:
-1. **Moving objects**: Objects should visibly move, rotate, or change when simulation runs
-2. **Clear motion**: Animation should be immediately noticeable - not subtle
-3. **Rotation animations**: For spinning/rotating objects (earth, wheels, etc.), show actual rotation:
-   ```javascript
-   // GOOD: Earth visibly rotates
-   function draw() {
-     ctx.clearRect(0, 0, w, h);
-     ctx.save();
-     ctx.translate(centerX, centerY);
-     ctx.rotate(rotationAngle); // Earth rotates!
-     // Draw earth content...
-     ctx.restore();
+### 7. Real-Time Computed Results (CRITICAL)
 
-     if (state.running) {
-       rotationAngle += 0.02 * state.speed; // Update rotation
-     }
-   }
-   ```
-4. **Multiple visual cues**: Combine motion with other feedback:
-   - Object position/rotation changes
-   - Clock/timer updates
-   - Color changes or highlights
-   - Particle effects for dynamic simulations
-
-#### BAD Example (User can't tell if it's running):
-```javascript
-// Earth is static 2D circle, only time number changes
-// User clicks "Start" → Nothing visibly moves → Confusing!
-```
-
-#### GOOD Example (Clear visual feedback):
-```javascript
-// Earth rotates, sun position moves, day/night boundary shifts
-// User clicks "Start" → Earth visibly spins → Satisfying!
-```
-
-### 8. Data Display
-- Real-time values should be clearly visible
+- Whenever a slider changes, immediately recalculate and display results in the results box
+- Use `input` event (not `change`) on sliders for real-time feedback
+- Format numbers with appropriate precision (e.g. `toFixed(1)`)
+- Always show units next to values
 - Use monospace font for numbers
-- Show units consistently
-- Consider a floating info panel that doesn't block the simulation
 
-### 9. Presets
-- Each preset should clearly describe what it demonstrates
-- Preset buttons should be touch-friendly (larger on mobile)
-- Applying a preset should reset the simulation
+### 8. Tab System (when applicable)
 
-### 10. Accessibility
-- ARIA labels on all controls
-- Keyboard support (Space to start/pause, R to reset)
-- Focus indicators
-- High contrast text on canvas
+- Only include tabs if the concept naturally splits into 2-3 sub-experiments
+- Switching tabs should reset the visualization and update controls
+- Active tab should be visually distinct (colored bottom border)
+- Each tab's state is independent
 
-### 11. Performance
+### 9. Performance
 - Use `requestAnimationFrame` for animations
 - Clear canvas each frame
 - Don't create objects in render loop
@@ -275,7 +426,8 @@ function updateButton(text) {
 | Canvas overlap on mobile | Fixed positioning | Use flex/grid with proper responsive classes |
 | Simulation stuck | Missing `ended` state | Track `ended` separately from `running` |
 | Button does nothing | State logic error | Clear state machine with defined transitions |
-| Touch issues | Small touch targets | Min 44px touch targets, larger sliders |
+| Sliders don't update viz | Using `change` event | Use `input` event for real-time updates |
+| Results not updating | Missing recalculate call | Call compute function in every slider's `input` handler |
 
 ## Output Format
 
@@ -286,32 +438,18 @@ Return ONLY the HTML document, no markdown fences or explanations.
 - Do NOT include multiple `<!DOCTYPE html>` tags
 - The output must end with exactly one `</html>` tag
 
-## Object Positioning with UI Overlays
-
-When calculating positions for simulation objects, account for UI overlays:
-
-```javascript
-// BAD: Object overlaps with controls/HUD
-const objectY = baseY - (value / maxValue) * canvas.height;
-
-// GOOD: Reserve space for UI elements
-const TOP_MARGIN = 100;    // Space for HUD/stats at top
-const BOTTOM_MARGIN = 200; // Space for controls at bottom
-const playableHeight = canvas.height - TOP_MARGIN - BOTTOM_MARGIN;
-const objectY = baseY - BOTTOM_MARGIN - (value / maxValue) * playableHeight;
-```
-
 ## Quality Checklist (verify before output)
 
-- [ ] Control panel does NOT overlap canvas on mobile (test 320px width)
+- [ ] Uses two-column layout: visualization left, controls right
+- [ ] Has hint banner at top explaining the experiment
+- [ ] Sliders show current value + unit inline
+- [ ] Computed results displayed in a distinct results box
+- [ ] Real-time updates on slider change (no button press needed to see results)
+- [ ] Tabs present if concept has multiple sub-experiments
+- [ ] Control panel does NOT overlap canvas on mobile
 - [ ] Reset button returns simulation to EXACT initial state
-- [ ] Button text matches button action correctly
 - [ ] Touch targets are at least 44px
 - [ ] Canvas resizes properly on window resize
-- [ ] State machine is clear (running/paused/ended)
-- [ ] All state variables reset on resetSimulation()
-- [ ] Works on both desktop and mobile browsers
 - [ ] **NO DUPLICATED HTML** - exactly ONE `<!DOCTYPE html>` tag
-- [ ] Simulation objects are visible and not hidden under UI overlays
-- [ ] **Visible animation: Objects visibly move/rotate when simulation runs**
-- [ ] **Animation is OBVIOUS, not subtle - user can tell simulation is running**
+- [ ] **Visible animation when running - user can clearly tell it's active**
+- [ ] Modern, polished visual design using the design tokens above

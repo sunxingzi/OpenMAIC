@@ -47,6 +47,11 @@
     "classroomZip": "匯出課堂 ZIP",
     "classroomZipDesc": "課程結構 + 媒體檔案"
   },
+  "interactive": {
+    "downloadHtml": "下載為 HTML 檔案",
+    "explanation": "概念講解",
+    "hideExplanation": "隱藏講解"
+  },
   "import": {
     "classroom": "匯入課堂",
     "parsing": "正在解析 ZIP...",

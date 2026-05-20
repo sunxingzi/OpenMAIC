@@ -122,41 +122,57 @@ Live code editor with execution and test cases.
 - Learning happens through PLAY, not through questions
 - Game should be FUN enough to replay
 
-### 5. 3D Visualization (`visualization3d`)
-Interactive 3D scenes using Three.js for immersive learning experiences.
+### 5. 3D Visualization (`visualization3d`) — PREFERRED for spatial concepts
+Interactive 3D scenes using Three.js with professional dark-theme UI for immersive learning.
 
-**Best for:**
-- Molecular structures: Atoms, bonds, molecules
-- Solar systems: Planets, orbits, scale visualization
-- Anatomy: Organs, body systems, cross-sections
-- 3D Geometry: Shapes, nets, transformations
-- Physics in 3D: Forces, vectors, trajectories
+**Best for (STRONGLY PREFER over simulation for these topics):**
+- **Electromagnetic fields**: Magnetic/electric field lines, Ampere's rule, Faraday's law, solenoids, coils
+- **Force fields**: Gravitational fields, vector fields, field line distributions
+- **Molecular structures**: Atoms, bonds, molecules, crystal lattices, DNA
+- **Solar systems**: Planets, orbits, scale visualization
+- **Anatomy**: Organs, body systems, cross-sections
+- **3D Geometry**: Shapes, nets, transformations, spatial relationships
+- **Wave propagation**: Electromagnetic waves, interference patterns in 3D
+- **Electron orbitals**: Atomic structure, electron clouds
+
+**When to choose `visualization3d` over `simulation`:**
+- The concept involves **spatial distribution** (fields, orbits, 3D structures)
+- The learner needs to **rotate and observe from multiple angles**
+- **Field lines, vectors, or flow patterns** are central to understanding
+- The subject involves **3D structures** (molecules, organs, geometries)
 
 **Output in widgetOutline:**
 - `visualizationType`: "molecular" | "solar" | "anatomy" | "geometry" | "physics" | "custom"
-- `objects`: List of 3D objects to create (e.g., ["sun", "earth", "moon"])
-- `interactions`: List of interactive controls (e.g., ["orbit", "speed_slider"])
+- `objects`: List of 3D objects to create (e.g., ["coil", "fieldLines", "arrows"])
+- `interactions`: List of interactive controls (e.g., ["orbit", "direction_toggle", "intensity_slider"])
 
-**Design Principles:**
-- Use OrbitControls for camera manipulation
-- Proper lighting (ambient + directional)
+**Design Principles (reference: professional physics education platforms):**
+- Dark premium theme with glassmorphism control panels
+- Grid ground plane for spatial reference
+- Mini-map (top-down orthographic view) in upper-right corner
+- Right-side floating control panel with toggles and sliders
+- Physical principle explanation panel in bottom-right
+- Field lines rendered as 3D tubes with directional arrows
+- OrbitControls for camera manipulation
 - Touch-friendly controls for mobile
-- Performance-optimized geometry
-- Smooth animations with requestAnimationFrame
 
 ## Widget Selection Guide
 
 | Content Type | Recommended Widget | Reason |
 |--------------|-------------------|--------|
-| Physics formulas/concepts | simulation | Let students EXPERIMENT with variables |
+| Electromagnetic fields (磁场/电场) | **visualization3d** | Field lines need 3D spatial visualization |
+| Force fields / vector fields | **visualization3d** | Spatial distribution requires 3D rotation |
+| Molecular/atomic structures | **visualization3d** | 3D spatial understanding of bonds/orbitals |
+| Solar system/astronomy | **visualization3d** | Scale, orbit, and spatial relationships |
+| Anatomy/biology 3D models | **visualization3d** | Organ systems, cell structures in 3D |
+| 3D geometry/shapes | **visualization3d** | Spatial reasoning and transformation |
+| Wave propagation in space | **visualization3d** | 3D wave fronts and interference |
+| 2D physics (projectile/circuit) | simulation | 2D canvas is sufficient |
+| Chemistry reactions/pH | simulation | 2D canvas with variables |
 | Step-by-step processes | diagram | Visual walkthrough with reveal |
 | Programming concepts | code | Hands-on coding practice |
 | Practice/challenge | game (action) | FUN gameplay to apply knowledge |
 | Concept relationships | diagram | Visual connections |
-| Force/motion problems | simulation + game | Simulate physics, gamify the challenge |
-| 3D structures/models | visualization3d | Immersive 3D exploration |
-| Molecular/anatomical models | visualization3d | Spatial understanding in 3D |
-| Solar system/astronomy | visualization3d | Scale and orbit visualization |
 
 ## Widget Distribution Guidelines
 
@@ -207,16 +223,35 @@ For **shorter courses (<10 scenes)**:
 
 **Note:** This is a REAL game where player controls thrust, not a quiz asking "What thrust is needed?"
 
-## Example: 3D Visualization Outline
+## Example: 3D Physics Visualization Outline
 
 ```json
 {
   "id": "scene_3",
   "type": "interactive",
+  "title": "安培定则：环形电流磁场",
+  "description": "交互式3D模型展示环形电流产生的磁场分布，可切换电流方向和强度",
+  "keyPoints": ["环形电流产生磁场", "右手定则判断磁场方向", "磁感线空间分布"],
+  "order": 3,
+  "widgetType": "visualization3d",
+  "widgetOutline": {
+    "visualizationType": "physics",
+    "objects": ["coil", "currentArrows", "fieldLines", "gridPlane"],
+    "interactions": ["orbit", "direction_toggle", "intensity_slider"]
+  }
+}
+```
+
+## Example: 3D Solar System Outline
+
+```json
+{
+  "id": "scene_5",
+  "type": "interactive",
   "title": "太阳系探索",
   "description": "交互式3D太阳系模型，探索行星轨道和相对大小",
   "keyPoints": ["行星轨道运动", "行星相对大小", "太阳系结构"],
-  "order": 3,
+  "order": 5,
   "widgetType": "visualization3d",
   "widgetOutline": {
     "visualizationType": "solar",

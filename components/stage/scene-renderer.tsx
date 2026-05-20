@@ -5,6 +5,7 @@ import type { Scene, StageMode } from '@/lib/types/stage';
 import { SlideEditor as SlideRenderer } from '../slide-renderer/Editor';
 import { QuizView } from '../scene-renderers/quiz-view';
 import { InteractiveRenderer } from '../scene-renderers/interactive-renderer';
+import { SplitInteractiveRenderer } from '../scene-renderers/split-interactive-renderer';
 import { PBLRenderer } from '../scene-renderers/pbl-renderer';
 
 interface SceneRendererProps {
@@ -23,7 +24,22 @@ export function SceneRenderer({ scene, mode }: SceneRendererProps) {
         return <QuizView key={scene.id} questions={scene.content.questions} sceneId={scene.id} />;
       case 'interactive':
         if (scene.content.type !== 'interactive') return <div>Invalid interactive content</div>;
-        return <InteractiveRenderer content={scene.content} sceneId={scene.id} />;
+        if (scene.content.explanation) {
+          return (
+            <SplitInteractiveRenderer
+              content={scene.content}
+              sceneId={scene.id}
+              sceneTitle={scene.title}
+            />
+          );
+        }
+        return (
+          <InteractiveRenderer
+            content={scene.content}
+            sceneId={scene.id}
+            sceneTitle={scene.title}
+          />
+        );
       case 'pbl':
         if (scene.content.type !== 'pbl') return <div>Invalid PBL content</div>;
         return <PBLRenderer content={scene.content} mode={mode} sceneId={scene.id} />;
